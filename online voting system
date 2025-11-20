@@ -1,0 +1,315 @@
+import java.util.*;
+
+/**
+ * Simple console-based Online Voting System in a single Java file.
+ * NOTE: This is for learning/demo purposes only (no real security, no networking).
+ */
+public class OnlineVotingSystem {
+
+    // ====== Data Models ======
+    static class Voter {
+        String voterId;
+        String name;
+        String password;
+        boolean hasVoted;
+
+        Voter(String voterId, String name, String password) {
+            this.voterId = voterId;
+            this.name = name;
+            this.password = password;
+            this.hasVoted = false;
+        }
+    }
+
+    static class Candidate {
+        int candidateId;
+        String name;
+        int votes;
+
+        Candidate(int candidateId, String name) {
+            this.candidateId = candidateId;
+            this.name = name;
+            this.votes = 0;
+        }
+    }
+
+    // ====== In-Memory "Database" ======
+    private static Map<String, Voter> voters = new HashMap<>();
+    private static Map<Integer, Candidate> candidates = new LinkedHashMap<>();
+    private static int candidateCounter = 1;
+
+    // Hardcoded admin credentials
+    private static final String ADMIN_USERNAME = "admin";
+    private static final String ADMIN_PASSWORD = "admin123";
+
+    private static Scanner scanner = new Scanner(System.in);
+
+    public static void main(String[] args) {
+        seedSampleData(); // optional: some default candidates
+
+        while (true) {
+            System.out.println("\n===== ONLINE VOTING SYSTEM =====");
+            System.out.println("1. Admin Login");
+            System.out.println("2. Voter Registration");
+            System.out.println("3. Voter Login");
+            System.out.println("4. Exit");
+            System.out.print("Enter choice: ");
+            String choice = scanner.nextLine().trim();
+
+            switch (choice) {
+                case "1":
+                    adminLogin();
+                    break;
+                case "2":
+                    voterRegistration();
+                    break;
+                case "3":
+                    voterLogin();
+                    break;
+                case "4":
+                    System.out.println("Exiting... Thank you!");
+                    return;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+        }
+    }
+
+    // ====== Seed some sample candidates (optional) ======
+    private static void seedSampleData() {
+        addCandidateInternal("Candidate A");
+        addCandidateInternal("Candidate B");
+        addCandidateInternal("Candidate C");
+    }
+
+    private static void addCandidateInternal(String name) {
+        Candidate c = new Candidate(candidateCounter++, name);
+        candidates.put(c.candidateId, c);
+    }
+
+    // ====== Admin Functions ======
+    private static void adminLogin() {
+        System.out.println("\n----- Admin Login -----");
+        System.out.print("Enter username: ");
+        String username = scanner.nextLine().trim();
+        System.out.print("Enter password: ");
+        String password = scanner.nextLine().trim();
+
+        if (ADMIN_USERNAME.equals(username) && ADMIN_PASSWORD.equals(password)) {
+            System.out.println("Admin login successful!");
+            adminMenu();
+        } else {
+            System.out.println("Invalid admin credentials!");
+        }
+    }
+
+    private static void adminMenu() {
+        while (true) {
+            System.out.println("\n===== ADMIN MENU =====");
+            System.out.println("1. Add Candidate");
+            System.out.println("2. View Candidates");
+            System.out.println("3. View Results");
+            System.out.println("4. Reset All Data");
+            System.out.println("5. Logout");
+            System.out.print("Enter choice: ");
+            String choice = scanner.nextLine().trim();
+
+            switch (choice) {
+                case "1":
+                    addCandidate();
+                    break;
+                case "2":
+                    viewCandidates();
+                    break;
+                case "3":
+                    viewResults();
+                    break;
+                case "4":
+                    resetData();
+                    break;
+                case "5":
+                    System.out.println("Admin logged out.");
+                    return;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+        }
+    }
+
+    private static void addCandidate() {
+        System.out.println("\n----- Add Candidate -----");
+        System.out.print("Enter candidate name: ");
+        String name = scanner.nextLine().trim();
+        if (name.isEmpty()) {
+            System.out.println("Candidate name cannot be empty.");
+            return;
+        }
+        Candidate c = new Candidate(candidateCounter++, name);
+        candidates.put(c.candidateId, c);
+        System.out.println("Candidate added with ID: " + c.candidateId);
+    }
+
+    private static void viewCandidates() {
+        System.out.println("\n----- Candidate List -----");
+        if (candidates.isEmpty()) {
+            System.out.println("No candidates found.");
+            return;
+        }
+        for (Candidate c : candidates.values()) {
+            System.out.println("ID: " + c.candidateId + " | Name: " + c.name + " | Votes: " + c.votes);
+        }
+    }
+
+    private static void viewResults() {
+        System.out.println("\n===== ELECTION RESULTS =====");
+        if (candidates.isEmpty()) {
+            System.out.println("No candidates available.");
+            return;
+        }
+
+        int totalVotes = 0;
+        Candidate winner = null;
+
+        for (Candidate c : candidates.values()) {
+            System.out.println("Candidate ID: " + c.candidateId + " | Name: " + c.name + " | Votes: " + c.votes);
+            totalVotes += c.votes;
+            if (winner == null || c.votes > winner.votes) {
+                winner = c;
+            }
+        }
+
+        System.out.println("\nTotal votes cast: " + totalVotes);
+        if (winner != null && totalVotes > 0) {
+            System.out.println("Current Leading Candidate: " + winner.name + " with " + winner.votes + " votes.");
+        } else {
+            System.out.println("No votes have been cast yet.");
+        }
+    }
+
+    private static void resetData() {
+        System.out.println("\nWARNING: This will clear all voters and candidates.");
+        System.out.print("Type 'YES' to confirm: ");
+        String confirm = scanner.nextLine().trim();
+        if ("YES".equalsIgnoreCase(confirm)) {
+            voters.clear();
+            candidates.clear();
+            candidateCounter = 1;
+            System.out.println("All data has been reset.");
+        } else {
+            System.out.println("Reset cancelled.");
+        }
+    }
+
+    // ====== Voter Functions ======
+    private static void voterRegistration() {
+        System.out.println("\n----- Voter Registration -----");
+        System.out.print("Enter Voter ID (unique): ");
+        String voterId = scanner.nextLine().trim();
+        if (voterId.isEmpty()) {
+            System.out.println("Voter ID cannot be empty.");
+            return;
+        }
+        if (voters.containsKey(voterId)) {
+            System.out.println("Voter ID already registered.");
+            return;
+        }
+
+        System.out.print("Enter Name: ");
+        String name = scanner.nextLine().trim();
+        if (name.isEmpty()) {
+            System.out.println("Name cannot be empty.");
+            return;
+        }
+
+        System.out.print("Create Password: ");
+        String password = scanner.nextLine().trim();
+        if (password.isEmpty()) {
+            System.out.println("Password cannot be empty.");
+            return;
+        }
+
+        Voter voter = new Voter(voterId, name, password);
+        voters.put(voterId, voter);
+        System.out.println("Voter registered successfully!");
+    }
+
+    private static void voterLogin() {
+        System.out.println("\n----- Voter Login -----");
+        System.out.print("Enter Voter ID: ");
+        String voterId = scanner.nextLine().trim();
+        System.out.print("Enter Password: ");
+        String password = scanner.nextLine().trim();
+
+        Voter voter = voters.get(voterId);
+        if (voter == null || !voter.password.equals(password)) {
+            System.out.println("Invalid Voter ID or Password.");
+            return;
+        }
+
+        System.out.println("Login successful. Welcome, " + voter.name + "!");
+        voterMenu(voter);
+    }
+
+    private static void voterMenu(Voter voter) {
+        while (true) {
+            System.out.println("\n===== VOTER MENU =====");
+            System.out.println("1. View Candidates");
+            System.out.println("2. Cast Vote");
+            System.out.println("3. Logout");
+            System.out.print("Enter choice: ");
+            String choice = scanner.nextLine().trim();
+
+            switch (choice) {
+                case "1":
+                    viewCandidates();
+                    break;
+                case "2":
+                    castVote(voter);
+                    break;
+                case "3":
+                    System.out.println("Voter logged out.");
+                    return;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+        }
+    }
+
+    private static void castVote(Voter voter) {
+        if (voter.hasVoted) {
+            System.out.println("You have already cast your vote. You cannot vote again.");
+            return;
+        }
+
+        if (candidates.isEmpty()) {
+            System.out.println("No candidates available to vote for.");
+            return;
+        }
+
+        System.out.println("\n----- Cast Your Vote -----");
+        for (Candidate c : candidates.values()) {
+            System.out.println("ID: " + c.candidateId + " | Name: " + c.name);
+        }
+
+        System.out.print("Enter Candidate ID to vote: ");
+        String input = scanner.nextLine().trim();
+        int candidateId;
+
+        try {
+            candidateId = Integer.parseInt(input);
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid candidate ID.");
+            return;
+        }
+
+        Candidate selected = candidates.get(candidateId);
+        if (selected == null) {
+            System.out.println("Candidate with this ID does not exist.");
+            return;
+        }
+
+        selected.votes++;
+        voter.hasVoted = true;
+        System.out.println("Your vote for " + selected.name + " has been recorded. Thank you!");
+    }
+}
